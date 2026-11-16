@@ -35,9 +35,9 @@
       voice_actor:'voz', live_actor:'acción real',
       back:'← Inicio', page_title:'Wordle DC',
       help_title:'Cómo se juega / Leyenda',
-      help_green:'Verde: coincide', help_yellow:'Amarillo: año cercano (≤3 años)',
+      help_green:'Verde: coincide', help_yellow:'Amarillo: año cercano (≤3 años) o mismo tipo de poder',
       help_gray:'Gris: no coincide. Flecha = año más reciente o antiguo',
-      help_hints:'Gana tokens en los intentos 3, 6 y 12 para comprar pistas. Pierdes 100 cada 4 intentos y 150 por token usado. Si pierdes, 0 puntos.',
+      help_hints:'Tienes 15 intentos. Gana tokens en los intentos 3, 6 y 10 para comprar pistas. Pierdes 100 cada 3 intentos y 150 por token usado. Si pierdes, 0 puntos.',
       values:{
         'Carnívoro':'Carnívoro','Herbívoro':'Herbívoro','Omnívoro':'Omnívoro',
         'Héroe':'Héroe','Villano':'Villano','Anti-héroe':'Anti-héroe',
@@ -71,9 +71,9 @@
       voice_actor:'voix', live_actor:'prise de vue réelle',
       back:'← Accueil', page_title:'Wordle DC',
       help_title:'Comment jouer / Légende',
-      help_green:'Vert : correspond', help_yellow:'Jaune : année proche (≤3 ans)',
+      help_green:'Vert : correspond', help_yellow:'Jaune : année proche (≤3 ans) ou même type de pouvoir',
       help_gray:'Gris : ne correspond pas. Flèche = année plus récente ou ancienne',
-      help_hints:'Gagne des jetons aux essais 3, 6 et 12 pour acheter des indices. -100 tous les 4 essais et -150 par jeton utilisé. Si tu perds, 0 point.',
+      help_hints:'Tu as 15 essais. Gagne des jetons aux essais 3, 6 et 10 pour acheter des indices. -100 tous les 3 essais et -150 par jeton utilisé. Si tu perds, 0 point.',
       values:{
         'Carnívoro':'Carnivore','Herbívoro':'Herbivore','Omnívoro':'Omnivore',
         'Héroe':'Héros','Villano':'Vilain','Anti-héroe':'Anti-héros',
@@ -107,9 +107,9 @@
       voice_actor:'voice', live_actor:'live-action',
       back:'← Home', page_title:'Wordle DC',
       help_title:'How to play / Legend',
-      help_green:'Green: matches', help_yellow:'Yellow: close year (≤3 years)',
+      help_green:'Green: matches', help_yellow:'Yellow: close year (≤3 years) or same kind of power',
       help_gray:'Gray: no match. Arrow = more recent or older year',
-      help_hints:'Earn tokens at attempts 3, 6 and 12 to buy hints. -100 every 4 attempts and -150 per token used. Lose = 0 points.',
+      help_hints:'You have 15 attempts. Earn tokens at attempts 3, 6 and 10 to buy hints. -100 every 3 attempts and -150 per token used. Lose = 0 points.',
       values:{
         'Carnívoro':'Carnivore','Herbívoro':'Herbivore','Omnívoro':'Omnivore',
         'Héroe':'Hero','Villano':'Villain','Anti-héroe':'Anti-hero',
@@ -121,7 +121,15 @@
   // Working name of the site, shown in the title bar. Change it here once the
   // final name and domain are chosen.
   const SITE_NAME = 'Heroesdle';
+  // Donations: the site has no ads, only this optional PayPal link.
+  const SUPPORT_URL = 'https://www.paypal.com/paypalme/MleyeKane';
   ['es','fr','en'].forEach(l => { I18N[l].page_title = SITE_NAME; });
+  Object.assign(I18N.en, { share:'📋 Share result', copied:'✅ Result copied — paste it anywhere!', copy_this:'Copy your result:',
+    support:'☕ Support the game', publisher:'Universe', foot_other:'🦖 Also try Dinodle, the daily dinosaur game', foot_contact:'Contact', foot_catalog:'📚 All heroes' });
+  Object.assign(I18N.fr, { share:'📋 Partager', copied:'✅ Résultat copié — colle-le où tu veux !', copy_this:'Copie ton résultat :',
+    support:'☕ Soutenir le jeu', publisher:'Univers', foot_other:'🦖 Essaie aussi Dinodle, le dinosaure du jour', foot_contact:'Contact', foot_catalog:'📚 Tous les héros' });
+  Object.assign(I18N.es, { share:'📋 Compartir', copied:'✅ Resultado copiado — ¡pégalo donde quieras!', copy_this:'Copia tu resultado:',
+    support:'☕ Apoya el juego', publisher:'Universo', foot_other:'🦖 Prueba también Dinodle, el dinosaurio del día', foot_contact:'Contacto', foot_catalog:'📚 Todos los héroes' });
   I18N.en.placeholder = 'e.g. Superman, Batman, Flash (Barry Allen)…';
   I18N.fr.placeholder = 'ex. Superman, Batman, Flash (Barry Allen)…';
   I18N.es.placeholder = 'Ej: Superman, Batman, Flash (Barry Allen)…';
@@ -173,6 +181,8 @@
   }
   function todayStamp(){ return stampFromDayNumber(dayNumber()); }
   function yesterdayStamp(){ return stampFromDayNumber(dayNumber()-1); }
+  // Puzzle #1 is 2026-11-16 (Madrid).
+  function puzzleNumber(){ return dayNumber() - Math.floor(Date.UTC(2026, 10, 16)/86400000) + 1; }
 
   /* stats */
   function getStats(){
@@ -572,7 +582,8 @@ function ensureLangToggle(){
           '<p class="modal-desc"></p>' +
           '<a class="modal-link" target="_blank" rel="noopener">'+T.wikipedia+' →</a>' +
         '</div>';
-      root.appendChild(modal);
+      // On the page itself, so effects on the game area never move or hide it.
+      document.body.appendChild(modal);
       modal.querySelector('.modal-close').onclick = () => modal.classList.remove('show');
       modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('show'); });
     }
@@ -654,7 +665,10 @@ function ensureLangToggle(){
       else if (state.attempts >= maxAttempts){ state.over = true; }
       render();
       save();
-      if (state.over) finish();
+      if (state.over){
+        finish();
+        global.dispatchEvent(new Event(state.won ? 'hero:win' : 'hero:lose'));
+      }
     }
 
     function buyHint(hintId){
@@ -672,6 +686,30 @@ function ensureLangToggle(){
       bannerEl.innerHTML = state.won
         ? T.correct+' <b>'+state.target.name+'</b> — '+state.attempts+' '+T.attempts_word+'. '+T.score+': <b>'+finalScore+'</b>.'
         : T.failed+' <b>'+state.target.name+'</b>. '+T.score+': <b>0</b>.';
+      if (!state.practice){
+        // Share: copy/share button + social networks (result only, never the answer).
+        const share = el('button', 'share-btn', T.share);
+        share.type = 'button';
+        share.onclick = shareResult;
+        bannerEl.appendChild(share);
+        const text = shareText(), url = cfg.shareUrl || location.origin + location.pathname, enc = encodeURIComponent;
+        const row = el('div', 'share-row');
+        [['X', 'https://twitter.com/intent/tweet?text=' + enc(text)],
+         ['Bluesky', 'https://bsky.app/intent/compose?text=' + enc(text)],
+         ['Reddit', 'https://www.reddit.com/submit?url=' + enc(url) + '&title=' + enc(text.split('\n')[0])],
+         ['WhatsApp', 'https://wa.me/?text=' + enc(text)],
+         ['Facebook', 'https://www.facebook.com/sharer/sharer.php?u=' + enc(url)]
+        ].forEach(n => { const a = el('a', 'share-net', n[0]); a.href = n[1]; a.target = '_blank'; a.rel = 'noopener'; row.appendChild(a); });
+        bannerEl.appendChild(row);
+      }
+      // Donation link after the game (never before playing).
+      if (SUPPORT_URL){
+        const s = el('div', 'support-row', T.support + ' ');
+        const a = el('a', 'support-btn', 'PayPal');
+        a.href = SUPPORT_URL; a.target = '_blank'; a.rel = 'noopener';
+        s.appendChild(a);
+        bannerEl.appendChild(s);
+      }
       inputEl.disabled = true;
       const b = formEl.querySelector('button');
       if (b) b.disabled = true;
@@ -684,6 +722,26 @@ function ensureLangToggle(){
         });
       }
       showRevealModal(state.target);
+    }
+
+    // Wordle-style result: one emoji row per guess, no names (no spoilers).
+    function shareText(){
+      const icon = { correct: '🟩', close: '🟨', wrong: '⬛' };
+      const rows = state.guesses.map(name => {
+        const g = data.find(d => d.name === name);
+        return attributes.map(a => icon[(a.compare(g, state.target) || {}).status] || '⬛').join('');
+      });
+      return SITE_NAME + ' #' + puzzleNumber() + ' ' +
+        (state.won ? state.attempts : 'X') + '/' + maxAttempts + ' · ' + computeScore() + ' pts' +
+        (state.hintsBought.size ? ' · 🎟️×' + state.hintsBought.size : '') +
+        '\n' + rows.join('\n') + '\n' + (cfg.shareUrl || location.origin + location.pathname);
+    }
+    function shareResult(){
+      const text = shareText();
+      const done = () => showMsg(T.copied, 'good');
+      if (navigator.share && /Mobi|Android/i.test(navigator.userAgent)) navigator.share({ text: text }).catch(() => {});
+      else if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, () => prompt(T.copy_this, text));
+      else prompt(T.copy_this, text);
     }
 
     function showRevealModal(item){
@@ -727,6 +785,10 @@ function ensureLangToggle(){
     function render(){
       if (!state.target) return;
       counterEl.querySelector('#attempts').textContent = state.attempts;
+      // Lets the theme react to progress (the city falls into darkness).
+      global.dispatchEvent(new CustomEvent('hero:progress', {
+        detail: { attempts: state.attempts, max: maxAttempts, over: state.over, won: state.won }
+      }));
       updateScoreUI();
 
       boardBody.innerHTML = '';

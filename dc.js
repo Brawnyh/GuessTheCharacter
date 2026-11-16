@@ -20,23 +20,31 @@ Promise.all([
   LANG === 'es' ? null : getJSON('data/i18n/dc.' + LANG + '.json').catch(() => null)
 ])
   .then(([source, dict]) => {
+    // Flags taken from the Spanish source before translation.
+    source.forEach(d => { d.realUnknown = !d.realName || d.realName === 'Desconocido'; });
     const data = localizeData(source, dict);
+    const hasPublisher = data.some(d => d.publisher);
     createGame({
       data,
       gameId: 'dc',
       storageKey: 'dc-daily-v7',
       historyKey: 'dc-history-v7',
-      maxAttempts: 20,
+      maxAttempts: 15,
       wikiLang: 'en',
-      tokens: { at: [3, 6, 12] },
-      scoring: { base: 1000, attemptPenalty: 100, attemptInterval: 4, tokenPenalty: 150 },
+      tokens: { at: [3, 6, 10] },
+      scoring: { base: 1000, attemptPenalty: 100, attemptInterval: 3, tokenPenalty: 150 },
+      shareUrl: 'https://brawnyh.github.io/GuessTheCharacter/',
       wikiUrlFor: item =>
         'https://en.wikipedia.org/wiki/' +
         encodeURIComponent(item.name.split(' (')[0].replace(/ /g, '_')),
       placeholder: (window.__T && window.__T.placeholder) || '',
       attributes: [
+        // Universe (DC, Marvel…) — only once the data has the field.
+        ...(hasPublisher ? [{ labelKey: 'publisher', display: d => d.publisher || '?', translate: false,
+          compare: (g, t) => ({ status: g.publisher === t.publisher ? 'correct' : 'wrong' }) }] : []),
+        // Two unknown identities are not a match (it would be a free green).
         { labelKey: 'realname', display: d => d.realName, translate: false,
-          compare: (g, t) => ({ status: g.realName === t.realName ? 'correct' : 'wrong' }) },
+          compare: (g, t) => ({ status: g.realName === t.realName && !t.realUnknown ? 'correct' : 'wrong' }) },
         { labelKey: 'gender', display: d => d.gender,
           compare: (g, t) => ({ status: g.gender === t.gender ? 'correct' : 'wrong' }) },
         { labelKey: 'alignment', display: d => d.alignment,
@@ -51,14 +59,13 @@ Promise.all([
         { labelKey: 'team', display: d => d.team, translate: false,
           compare: (g, t) => ({ status: g.team === t.team ? 'correct' : 'wrong' }) },
         { labelKey: 'power', display: d => d.power,
-  compare: (g, t) => {
-
-    if (!g.hasPowers && !t.hasPowers) return { status: 'correct' };
-
-    if (g.hasPowers !== t.hasPowers) return { status: 'wrong' };
-
-    return { status: g.power === t.power ? 'correct' : 'close' };
-  } },
+          // Same power = green; same kind of power (powerType) = yellow.
+          compare: (g, t) => {
+            if (!g.hasPowers && !t.hasPowers) return { status: 'correct' };
+            if (g.power === t.power) return { status: 'correct' };
+            if (g.powerType && g.powerType === t.powerType) return { status: 'close' };
+            return { status: 'wrong' };
+          } },
         { labelKey: 'city', display: d => d.city, translate: false,
           compare: (g, t) => ({ status: g.city === t.city ? 'correct' : 'wrong' }) }
       ],

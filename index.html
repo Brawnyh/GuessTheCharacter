@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Heroesdle</title>
+<meta name="description" content="Heroesdle: guess the superhero of the day. DC, Marvel and more, 15 tries, comic-book clues. Free, in English, French and Spanish.">
+<meta property="og:title" content="Heroesdle · Guess the daily superhero">
+<meta property="og:description" content="A new secret superhero every day. How many guesses do you need?">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🦸%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body class="theme-dc">
@@ -15,12 +19,14 @@
   <main>
     <div id="game"></div>
     <details class="help">
-      <summary id="help-title">Cómo se juega</summary>
+      <summary id="help-title">How to play</summary>
       <ul id="help-list"></ul>
       <p id="help-hints"></p>
     </details>
   </main>
+  <footer class="site-foot" id="site-foot"></footer>
   <script src="engine-dc.js"></script>
   <script src="dc.js"></script>
+  <script src="hero-theme.js"></script>
 </body>
 </html>

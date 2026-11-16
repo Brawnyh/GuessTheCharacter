@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>All heroes · Heroesdle</title>
+<meta name="description" content="Every superhero and villain in Heroesdle: search by name, universe, team or alignment.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🦸%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="styles.css">
+<style>
+  .cat-tools{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 16px}
+  .cat-tools input,.cat-tools select{background:var(--panel);color:var(--text);border:2px solid #000;border-radius:10px;padding:10px 12px;font:inherit;font-size:14px}
+  .cat-tools input{flex:1 1 220px}
+  .cat-count{color:var(--muted);font-size:13px;margin:0 0 10px}
+  .cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+  .cat-card{background:var(--panel);border:2px solid #000;box-shadow:3px 3px 0 rgba(0,0,0,.6);border-radius:12px;padding:11px 13px}
+  .cat-card h3{margin:0 0 6px;font-size:15px}
+  .cat-tags{display:flex;flex-wrap:wrap;gap:5px}
+  .cat-tag{font-size:11.5px;padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.08);color:var(--muted)}
+  .cat-tag.hero{background:rgba(47,179,74,.25);color:#bff0c8}
+  .cat-tag.villain{background:rgba(255,59,59,.22);color:#ffc9c9}
+  .cat-tag.anti{background:rgba(242,165,22,.22);color:#ffe2a8}
+  .cat-note{color:var(--muted);font-size:13px;margin:0 0 14px}
+</style>
+</head>
+<body class="theme-dc">
+  <nav class="topbar">
+    <a href="./" id="back-link" style="color:var(--muted);text-decoration:none">← Heroesdle</a>
+    <h1 id="cat-title">All heroes</h1>
+    <div id="lang-toggle-widget"></div>
+  </nav>
+  <main>
+    <p class="cat-note" id="cat-note"></p>
+    <div class="cat-tools">
+      <input id="q" type="search" autocomplete="off">
+      <select id="pub"></select>
+      <select id="align"></select>
+    </div>
+    <p class="cat-count" id="count"></p>
+    <div class="cat-grid" id="grid"></div>
+  </main>
+  <footer class="site-foot" id="site-foot"></footer>
+  <script>
+  (function () {
+    'use strict';
+    var LANG_KEY = 'wordle_lang_v7', LANGS = ['en', 'fr', 'es'];
+    var lang = null;
+    try { lang = localStorage.getItem(LANG_KEY); } catch (e) {}
+    if (LANGS.indexOf(lang) === -1) {
+      var nav = ((navigator.languages && navigator.languages[0]) || navigator.language || 'en').slice(0, 2).toLowerCase();
+      lang = LANGS.indexOf(nav) !== -1 ? nav : 'en';
+    }
+    var T = {
+      en: { title: 'All heroes', back: '← Heroesdle', note: 'Every character that can be the daily secret. No clues here — just who is in the game.', search: 'Search a name, team or city…', allPub: 'All universes', allAlign: 'All sides', count: '{n} characters', first: '1st', none: 'No powers' },
+      fr: { title: 'Tous les héros', back: '← Heroesdle', note: 'Tous les personnages qui peuvent être le secret du jour. Aucun indice ici, juste qui est dans le jeu.', search: 'Chercher un nom, une équipe, une ville…', allPub: 'Tous les univers', allAlign: 'Tous les camps', count: '{n} personnages', first: '1re', none: 'Sans pouvoirs' },
+      es: { title: 'Todos los héroes', back: '← Heroesdle', note: 'Todos los personajes que pueden ser el secreto del día. Aquí no hay pistas, solo quién está en el juego.', search: 'Busca un nombre, equipo o ciudad…', allPub: 'Todos los universos', allAlign: 'Todos los bandos', count: '{n} personajes', first: '1ª', none: 'Sin poderes' }
+    }[lang];
+    document.documentElement.lang = lang;
+    document.title = T.title + ' · Heroesdle';
+    document.getElementById('cat-title').textContent = T.title;
+    document.getElementById('back-link').textContent = T.back;
+    document.getElementById('cat-note').textContent = T.note;
+    document.getElementById('q').placeholder = T.search;
+
+    var w = document.getElementById('lang-toggle-widget');
+    w.innerHTML = LANGS.map(function (l) { return '<button data-l="' + l + '" class="' + (l === lang ? 'active' : '') + '">' + l.toUpperCase() + '</button>'; }).join('');
+    w.querySelectorAll('button').forEach(function (b) { b.onclick = function () { try { localStorage.setItem(LANG_KEY, b.dataset.l); } catch (e) {} location.reload(); }; });
+
+    function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+    function norm(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
+    function getJSON(u) { return fetch(u).then(function (r) { if (!r.ok) throw new Error(u); return r.json(); }); }
+
+    Promise.all([getJSON('data/dc.json'), lang === 'es' ? null : getJSON('data/i18n/dc.' + lang + '.json').catch(function () { return null; })])
+      .then(function (res) {
+        var src = res[0], dict = res[1] || {}, f = dict.fields || {};
+        function tr(field, v) { return f[field] && f[field][v] != null ? f[field][v] : v; }
+        var items = src.map(function (d) {
+          return { name: d.name, pub: d.publisher || 'DC', alignRaw: d.alignment, align: tr('alignment', d.alignment),
+            team: tr('team', d.team), city: tr('city', d.city), year: d.firstAppearance,
+            power: d.hasPowers === false ? T.none : tr('power', d.power), aliases: (d.aliases || []).join(' ') };
+        }).sort(function (a, b) { return a.name.localeCompare(b.name); });
+
+        function opts(el, all, values) {
+          el.innerHTML = '<option value="">' + esc(all) + '</option>' + values.map(function (v) { return '<option>' + esc(v) + '</option>'; }).join('');
+        }
+        var pubs = Array.from(new Set(items.map(function (i) { return i.pub; }))).sort();
+        var aligns = Array.from(new Set(items.map(function (i) { return i.align; }))).sort();
+        var qEl = document.getElementById('q'), pubEl = document.getElementById('pub'), alEl = document.getElementById('align');
+        opts(pubEl, T.allPub, pubs); opts(alEl, T.allAlign, aligns);
+        if (pubs.length < 2) pubEl.style.display = 'none';
+
+        function cls(raw) { return raw === 'Héroe' ? 'hero' : raw === 'Villano' ? 'villain' : 'anti'; }
+        function draw() {
+          var q = norm(qEl.value), p = pubEl.value, a = alEl.value;
+          var shown = items.filter(function (i) {
+            return (!p || i.pub === p) && (!a || i.align === a) &&
+              (!q || norm(i.name + ' ' + i.team + ' ' + i.city + ' ' + i.aliases).indexOf(q) !== -1);
+          });
+          document.getElementById('count').textContent = T.count.replace('{n}', shown.length);
+          document.getElementById('grid').innerHTML = shown.map(function (i) {
+            return '<div class="cat-card"><h3>' + esc(i.name) + '</h3><div class="cat-tags">' +
+              '<span class="cat-tag">' + esc(i.pub) + '</span>' +
+              '<span class="cat-tag ' + cls(i.alignRaw) + '">' + esc(i.align) + '</span>' +
+              '<span class="cat-tag">' + esc(i.team) + '</span>' +
+              '<span class="cat-tag">' + esc(T.first) + ' ' + esc(i.year) + '</span>' +
+              '<span class="cat-tag">' + esc(i.power) + '</span>' +
+              '</div></div>';
+          }).join('');
+        }
+        [qEl, pubEl, alEl].forEach(function (el) { el.addEventListener('input', draw); });
+        draw();
+      })
+      .catch(function () { document.getElementById('grid').textContent = 'Could not load the characters.'; });
+  })();
+  </script>
+  <script>
+    // Footer (same as the game page)
+    window.__T = { foot_other: '🦖 Also try Dinodle, the daily dinosaur game', support: '☕ Support the game', foot_contact: 'Contact' };
+  </script>
+  <script src="hero-theme.js"></script>
+</body>
+</html>
