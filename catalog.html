@@ -20,7 +20,8 @@
   .cat-tag.hero{background:rgba(47,179,74,.25);color:#bff0c8}
   .cat-tag.villain{background:rgba(255,59,59,.22);color:#ffc9c9}
   .cat-tag.anti{background:rgba(242,165,22,.22);color:#ffe2a8}
-  .cat-note{color:var(--muted);font-size:13px;margin:0 0 14px}
+  .cat-note{color:var(--text);font-size:13.5px;margin:0 0 14px;background:rgba(10,16,40,.7);padding:8px 12px;border-radius:10px;display:inline-block}
+  .cat-count{background:rgba(10,16,40,.7);padding:3px 10px;border-radius:999px;display:inline-block;color:var(--text)!important}
 </style>
 </head>
 <body class="theme-dc">
@@ -75,7 +76,7 @@
         var src = res[0], dict = res[1] || {}, f = dict.fields || {};
         function tr(field, v) { return f[field] && f[field][v] != null ? f[field][v] : v; }
         var items = src.map(function (d) {
-          return { name: d.name, pub: d.publisher || 'DC', alignRaw: d.alignment, align: tr('alignment', d.alignment),
+          return { name: d.name, pub: tr('publisher', d.publisher || 'DC Comics'), alignRaw: d.alignment, align: tr('alignment', d.alignment),
             team: tr('team', d.team), city: tr('city', d.city), year: d.firstAppearance,
             power: d.hasPowers === false ? T.none : tr('power', d.power), aliases: (d.aliases || []).join(' ') };
         }).sort(function (a, b) { return a.name.localeCompare(b.name); });

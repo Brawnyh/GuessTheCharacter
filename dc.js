@@ -36,7 +36,7 @@ Promise.all([
       shareUrl: 'https://brawnyh.github.io/GuessTheCharacter/',
       wikiUrlFor: item =>
         'https://en.wikipedia.org/wiki/' +
-        encodeURIComponent(item.name.split(' (')[0].replace(/ /g, '_')),
+        encodeURIComponent((item.wikiName || item.name.split(' (')[0]).replace(/ /g, '_')),
       placeholder: (window.__T && window.__T.placeholder) || '',
       attributes: [
         // Universe (DC, Marvel…) — only once the data has the field.

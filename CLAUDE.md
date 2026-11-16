@@ -15,11 +15,16 @@ Sister site: Dinodle (`C:\Users\Deme\DinosauresWOrdle`, github.com/Brawnyh/Dinod
 | `index.html` | The game page |
 | `dc.js` | Game config: attributes, compare rules, token hints; loads and applies data translations |
 | `engine-dc.js` | Engine: UI strings ES/FR/EN, tokens and score, history, stats, images, countdown |
-| `data/dc.json` | 200 characters (source language Spanish) |
+| `data/dc.json` | 309 characters (source language Spanish): DC Comics, Marvel, Image Comics, Independiente (`publisher`), with `powerType` categories |
+| `catalog.html` | Searchable list of all characters (no clues) |
+| `hero-theme.js` | Comic theme (day→night with attempts, POW!/BOOM!), footer with PayPal and Dinodle link |
 | `data/i18n/dc.{en,fr}.json` | `fields` value maps (gender, alignment, team, power, city, realName, creator, nemesis) + `description` by name |
 | `styles.css` | Styles |
 
 ## Key behaviors
+
+- **Rules**: 15 attempts, tokens at 3/6/10. Universe column (`publisher`). Power: same power = green, same `powerType` = yellow. Two unknown real names never match.
+- **Sharing / donations**: share button + social links after a game; PayPal link (`SUPPORT_URL` in engine-dc.js). No ads, no analytics.
 
 - **Daily reset: midnight Europe/Madrid** (`dayNumber()`); target = `dayNumber() % data.length`.
 - **Languages**: English first; saved choice (`wordle_lang_v7`), else browser language, else English. Data is translated at load by `localizeData()` in `dc.js`, applied consistently per field so equality comparisons still work.
